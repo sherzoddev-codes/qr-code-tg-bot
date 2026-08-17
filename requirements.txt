@@ -1,5 +1,6 @@
 aiogram
 qrcode
 Pillow
-pyzbar
+opencv-python-headless
+numpy
 python-dotenv
