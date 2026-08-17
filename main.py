@@ -9,8 +9,11 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiogram.types import BufferedInputFile
 
-# Telegram Bot Token
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8728752369:AAFHwOh0OoKKT-hp6l2TA9zA2Hfmo1TL65k")
+# Telegram Bot Token'ni Render muhitidan (Environment Variables) olish
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN topilmadi! Render'dagi Environment Variables bo'limida BOT_TOKEN sozlangani va to'g'ri kiritilganini tekshiring.")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -19,21 +22,23 @@ dp = Dispatcher()
 @dp.message(CommandStart())
 async def start_handler(message: types.Message):
     await message.answer(
-        "Salom! Men QR Kod generator va skaner botman.\n\n"
-        "• Matn yoki ssilka yuboring — **QR kod yasab beraman**\n"
-        "• QR kod rasmini yuboring — **Ichidagi matnni o'qib beraman**"
+        "👋 **Salom! Men QR Kod generator va skaner botman.**\n\n"
+        "• **Matn yoki ssilka yuboring** — QR kod yasab beraman.\n"
+        "• **QR kod rasmini yuboring** — Ichidagi matnni o'qib beraman.",
+        parse_mode="Markdown"
     )
 
 # Matndan QR kod yaratish
 @dp.message(F.text)
 async def create_qr_handler(message: types.Message):
     qr_img = qrcode.make(message.text)
+    
     buffer = io.BytesIO()
     qr_img.save(buffer, format="PNG")
     buffer.seek(0)
     
     photo = BufferedInputFile(buffer.getvalue(), filename="qrcode.png")
-    await message.answer_photo(photo, caption="Sizning QR kodingiz ready!")
+    await message.answer_photo(photo, caption="✅ Sizning QR kodingiz tayyor!")
 
 # Rasmdan QR kodni o'qish (Skaner)
 @dp.message(F.photo)
@@ -47,10 +52,14 @@ async def read_qr_handler(message: types.Message):
     
     if decoded_objects:
         qr_data = decoded_objects[0].data.decode('utf-8')
-        await message.answer(f"🔍 **QR kod ichidagi ma'lumot:**\n\n`{qr_data}`", parse_mode="Markdown")
+        await message.answer(
+            f"🔍 **QR kod ichidagi ma'lumot:**\n\n`{qr_data}`",
+            parse_mode="Markdown"
+        )
     else:
-        await message.answer("❌ Ushbu rasmdan QR kod topilmadi. Iltimos, aniqroq rasm yuboring.")
+        await message.answer("❌ Ushbu rasmdan QR kod topilmadi. Iltimos, aniqroq va tiniqroq rasm yuboring.")
 
+# Botni ishga tushirish
 async def main():
     logging.basicConfig(level=logging.INFO)
     await dp.start_polling(bot)
