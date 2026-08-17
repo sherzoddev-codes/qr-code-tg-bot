@@ -1,5 +1,5 @@
-aiogram==3.15.0
-qrcode==8.0
-Pillow==10.4.0
-pyzbar==0.1.9
-python-dotenv==1.0.1
+aiogram
+qrcode
+Pillow
+pyzbar
+python-dotenv
