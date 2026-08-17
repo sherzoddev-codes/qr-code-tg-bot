@@ -3,17 +3,17 @@ import io
 import os
 import logging
 import qrcode
-from PIL import Image
-from pyzbar.pyzbar import decode
+import cv2
+import numpy as np
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiogram.types import BufferedInputFile
 
-# Telegram Bot Token'ni Render muhitidan (Environment Variables) olish
+# Telegram Bot Token
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 if not BOT_TOKEN:
-    raise ValueError("BOT_TOKEN topilmadi! Render'dagi Environment Variables bo'limida BOT_TOKEN sozlangani va to'g'ri kiritilganini tekshiring.")
+    raise ValueError("BOT_TOKEN topilmadi! Render'dagi Environment Variables bo'limida BOT_TOKEN borligini tekshiring.")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -40,18 +40,22 @@ async def create_qr_handler(message: types.Message):
     photo = BufferedInputFile(buffer.getvalue(), filename="qrcode.png")
     await message.answer_photo(photo, caption="✅ Sizning QR kodingiz tayyor!")
 
-# Rasmdan QR kodni o'qish (Skaner)
+# Rasmdan QR kodni o'qish (OpenCV skaneri)
 @dp.message(F.photo)
 async def read_qr_handler(message: types.Message):
     photo = message.photo[-1]
     file_info = await bot.get_file(photo.file_id)
     downloaded_file = await bot.download_file(file_info.file_path)
     
-    image = Image.open(downloaded_file)
-    decoded_objects = decode(image)
+    # Rasmni OpenCV formati uchun tayyorlash
+    file_bytes = np.frombuffer(downloaded_file.read(), np.uint8)
+    img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
     
-    if decoded_objects:
-        qr_data = decoded_objects[0].data.decode('utf-8')
+    # OpenCV QR Code skaneri
+    detector = cv2.QRCodeDetector()
+    qr_data, _, _ = detector.detectAndDecode(img)
+    
+    if qr_data:
         await message.answer(
             f"🔍 **QR kod ichidagi ma'lumot:**\n\n`{qr_data}`",
             parse_mode="Markdown"
@@ -59,7 +63,6 @@ async def read_qr_handler(message: types.Message):
     else:
         await message.answer("❌ Ushbu rasmdan QR kod topilmadi. Iltimos, aniqroq va tiniqroq rasm yuboring.")
 
-# Botni ishga tushirish
 async def main():
     logging.basicConfig(level=logging.INFO)
     await dp.start_polling(bot)
